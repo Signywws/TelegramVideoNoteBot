@@ -22,8 +22,10 @@ type Results struct {
 }
 
 type Video struct {
-	FileID   string `json:"file_id"`
-	Duration int    `json:"duration"`
+	FileID     string `json:"file_id"`
+	FileUniqID string `json:"file_unique_id"`
+	Duration   int    `json:"duration"`
+	Size       int    `json:"file_size"`
 }
 
 type File struct {

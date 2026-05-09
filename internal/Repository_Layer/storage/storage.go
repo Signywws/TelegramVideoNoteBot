@@ -9,7 +9,6 @@ import (
 type FileStorage interface {
 	Save(ctx context.Context, userID int64, category string, reader io.Reader) (string, error)
 	Get(ctx context.Context, path string) (io.Reader, error)
-	// Delete(ctx context.Context, path string) error
 }
 
 type FileRecord struct {
@@ -23,4 +22,5 @@ type FileRecord struct {
 
 type FileRepository interface {
 	InsertRecord(ctx context.Context, record *FileRecord) error
+	Close(ctx context.Context) error
 }

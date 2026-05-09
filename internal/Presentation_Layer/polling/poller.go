@@ -3,6 +3,7 @@ package polling
 import (
 	"context"
 	"log"
+	"time"
 	"videonotebot/internal/Presentation_Layer/clients"
 	"videonotebot/internal/Presentation_Layer/dispatcher"
 )
@@ -12,6 +13,7 @@ type Poller struct {
 	dispatcher dispatcher.Dispatcher
 	offset     int
 	timeout    int // таймаут long polling
+	updates    chan *clients.Update
 }
 
 func NewPoller(client *clients.Client, dispatcher *dispatcher.Dispatcher, timeout int) *Poller {
@@ -20,34 +22,53 @@ func NewPoller(client *clients.Client, dispatcher *dispatcher.Dispatcher, timeou
 		dispatcher: *dispatcher,
 		offset:     0,
 		timeout:    timeout,
+		updates:    make(chan *clients.Update, 1000),
 	}
 }
 
 func (p *Poller) Start(ctx context.Context) {
 	log.Println("Poller Started!")
 
-	for {
+	go func() {
 		select {
 		case <-ctx.Done():
 			log.Println("Poller stopped")
 			return
 		default:
 		}
-
-		updates, err := p.client.GetUpdate(p.offset, p.timeout)
-		if err != nil {
-			log.Printf("GetUpdates error: %v", err)
+		for update := range p.updates {
+			p.dispatcher.HandleUpdate(update)
 		}
+		log.Println("Update consumer stopped")
+	}()
 
-		for _, update := range updates {
-			if update.Message == nil {
+	go func() {
+		defer close(p.updates)
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Poller stopped")
+				return
+			default:
+			}
+
+			updates, err := p.client.GetUpdate(p.offset, p.timeout)
+			if err != nil {
+				log.Printf("GetUpdates error: %v", err)
+				time.Sleep(time.Second)
 				continue
 			}
 
-			p.dispatcher.HandleUpdate(&update)
-			// обновляеем до последнего обработанного
-			p.offset = update.UpdateID + 1
+			for _, update := range updates {
+				if update.Message == nil {
+					continue
+				}
+				upd := update
+				p.updates <- &upd // безопасный указатель
+				p.offset = update.UpdateID + 1
+			}
+
 		}
 
-	}
+	}()
 }

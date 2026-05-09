@@ -20,7 +20,9 @@ const (
 )
 
 func main() {
+
 	cfg := config.Load()
+
 	if cfg.BotToken == "" {
 		log.Fatal("TOKEN is not set")
 	}

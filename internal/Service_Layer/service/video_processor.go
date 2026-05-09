@@ -89,7 +89,7 @@ func (p *VideoProcessor) Process(ctx context.Context, chatID int64, video *clien
 	if err := p.repo.InsertRecord(context.Background(), &storage.FileRecord{
 		UserID:    chatID,
 		ChatID:    chatID,
-		MessageID: messageID, // нужно прокинуть из Handler, см. ниже
+		MessageID: messageID, // нужно прокинуть из Handler
 		Original:  origPath,
 		VideoNote: notePath,
 		CreatedAt: time.Now(),
