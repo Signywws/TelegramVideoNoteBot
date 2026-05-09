@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 	"videonotebot/internal/Presentation_Layer/clients"
 	"videonotebot/internal/Repository_Layer/storage"
 )
@@ -13,17 +14,20 @@ type VideoProcessor struct {
 	client    *clients.Client
 	converter *Converter
 	fileStore storage.FileStorage
+	repo      storage.FileRepository
 }
 
-func NewVideoProcessor(client *clients.Client, converter *Converter, storage storage.FileStorage) *VideoProcessor {
+func NewVideoProcessor(client *clients.Client, converter *Converter, storage storage.FileStorage, repo storage.FileRepository) *VideoProcessor {
+
 	return &VideoProcessor{
 		client:    client,
 		converter: converter,
 		fileStore: storage,
+		repo:      repo,
 	}
 }
 
-func (p *VideoProcessor) Process(ctx context.Context, chatID int64, video *clients.Video) error {
+func (p *VideoProcessor) Process(ctx context.Context, chatID int64, video *clients.Video, messageID int) error {
 	fileInfo, err := p.client.GetFile(video.FileID) // получаем информацию о файле
 	if err != nil {
 		return fmt.Errorf("get file: %w", err)
@@ -55,7 +59,7 @@ func (p *VideoProcessor) Process(ctx context.Context, chatID int64, video *clien
 		return fmt.Errorf("save original: %w", err)
 	}
 	log.Printf("Original saved to %s", origPath)
-	// 3. Конвертируем в Video Note
+	// Конвертируем в Video Note
 	// Создаём временный файл для результата
 	noteTmp, err := os.CreateTemp("", "video_note_*.mp4")
 	if err != nil {
@@ -82,13 +86,23 @@ func (p *VideoProcessor) Process(ctx context.Context, chatID int64, video *clien
 	}
 	log.Printf("Video note saved to %s", notePath)
 
-	// 4. Отправляем Video Note
+	if err := p.repo.InsertRecord(context.Background(), &storage.FileRecord{
+		UserID:    chatID,
+		ChatID:    chatID,
+		MessageID: messageID, // нужно прокинуть из Handler, см. ниже
+		Original:  origPath,
+		VideoNote: notePath,
+		CreatedAt: time.Now(),
+	}); err != nil {
+		log.Printf("Failed to insert mongo record: %v", err)
+	}
+
+	// Отправляем Video Note
 	log.Printf("Sending video note to chat %d...", chatID)
 	if err := p.client.SendVideoNote(chatID, notePath, video.Duration); err != nil {
 		return fmt.Errorf("send video note: %w", err)
 	}
 
-	// 5. (Опционально) сохраняем запись в MongoDB (здесь вызов репозитория)
 	log.Printf("Successfully processed video for chat %d", chatID)
 	return nil
 

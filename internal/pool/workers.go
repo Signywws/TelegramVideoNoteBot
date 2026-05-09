@@ -18,7 +18,7 @@ type Pool struct {
 func NewPool(size int) *Pool {
 	ctx, cancel := context.WithCancel(context.Background())
 	p := &Pool{
-		tasks:  make(chan Task, 100),
+		tasks:  make(chan Task, 1000),
 		ctx:    ctx,
 		cancel: cancel,
 	}

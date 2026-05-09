@@ -30,14 +30,21 @@ func main() {
 	// инициализация сервисов
 
 	// Хранилище
-	fileStore, err := storage.NewFileStore("../")
+	fileStore, err := storage.NewFileStore("../media/")
 	if err != nil {
 		log.Fatalf("Failed to init file storage: %v", err)
 	}
 	converter := service.NewConverter()
 
+	mongoURL := os.Getenv("MONGO_URI")
+	if mongoURL == "" {
+		mongoURL = "mongodb://localhost:27017/"
+	}
+
+	mongoRepo, err := storage.NewMongoRepo(context.Background(), mongoURL, "data")
+
 	// Video Processor
-	videoProcessor := service.NewVideoProcessor(client, converter, fileStore)
+	videoProcessor := service.NewVideoProcessor(client, converter, fileStore, mongoRepo)
 
 	// Worker Pool
 	pool := pool.NewPool(5)

@@ -34,10 +34,10 @@ func (h *VideoHandler) Handle(msg *clients.Message) {
 		return
 	}
 
-	h.client.SendMessage(chatID, "Видео получено. Обработка...")
 	h.pool.Submit(func() {
+		h.client.SendMessage(chatID, "Видео получено. Обработка...")
 		log.Printf("Processing video %s for chat %d", video.FileID, chatID)
-		if err := h.processor.Process(context.Background(), int64(chatID), video); err != nil {
+		if err := h.processor.Process(context.Background(), int64(chatID), video, msg.MessageID); err != nil {
 			log.Printf("Error processing video: %v", err)
 			h.client.SendMessage(chatID, "Не удалось обработать видео. Возможно, формат не поддерживается.")
 			return
