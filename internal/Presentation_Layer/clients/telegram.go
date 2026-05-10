@@ -83,6 +83,7 @@ func (c *Client) SendMessage(chatId int, text string) error {
 
 func (c *Client) GetFile(fileID string) (*File, error) {
 	url := fmt.Sprintf("%s/getFile?file_id=%s", c.baseURL, fileID)
+
 	resp, err := c.Client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("getFile request: %w", err)
@@ -92,14 +93,15 @@ func (c *Client) GetFile(fileID string) (*File, error) {
 
 	body, _ := io.ReadAll(resp.Body)
 	var res struct {
-		Ok     bool `json:"ok"`
-		Result File `json:"result"`
+		Ok          bool   `json:"ok"`
+		Result      File   `json:"result"`
+		Description string `json:"description"`
 	}
 	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 	if !res.Ok {
-		return nil, fmt.Errorf("getFile not ok")
+		return nil, fmt.Errorf("getFile not ok: ", res.Description)
 	}
 
 	return &res.Result, nil

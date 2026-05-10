@@ -25,18 +25,16 @@ func NewVideoHandler(client *clients.Client, pool *pool.Pool, processor *service
 }
 
 func (h *VideoHandler) Handle(msg *clients.Message) {
+	if msg.Video == nil {
+		h.client.SendMessage(msg.Chat.ChatID, "Я понимаю только видео, отправленное как медиа.")
+		return
+	}
 	video := msg.Video
 	chatID := msg.Chat.ChatID
 	fileID := msg.Video.FileID
-	// fileUnqID := msg.Video.FileUniqID
-	size := msg.Video.Size
 	log.Printf("Video from %d: file_id=%s, duration=%d", chatID, fileID, msg.Video.Duration)
 	if msg.Video.Duration > 60 {
 		h.client.SendMessage(chatID, "Видео слишком длинное. Пожалуйста, пришлите ролик до 60 секунд.")
-		return
-	}
-	if size > 524288000 { // 500mb
-		h.client.SendMessage(chatID, "Видео слишком большое. Пожалуйста, пришлите видое размером до 500mb.")
 		return
 	}
 

@@ -49,8 +49,8 @@ func main() {
 	videoProcessor := service.NewVideoProcessor(client, converter, fileStore, mongoRepo)
 
 	// Worker Pool
-	pollerPool := pool.NewPool(4)
-	pool := pool.NewPool(10)
+	pollerPool := pool.NewPool(10)
+	pool := pool.NewPool(50)
 
 	// Dispatcher
 	dispatcher := dispatcher.NewDispatcher(client, pool, videoProcessor, fileStore)

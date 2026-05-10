@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 	"videonotebot/internal/Presentation_Layer/clients"
 	"videonotebot/internal/Repository_Layer/storage"
@@ -30,6 +31,11 @@ func NewVideoProcessor(client *clients.Client, converter *Converter, storage sto
 func (p *VideoProcessor) Process(ctx context.Context, chatID int64, video *clients.Video, messageID int) error {
 	fileInfo, err := p.client.GetFile(video.FileID) // получаем информацию о файле
 	if err != nil {
+		if strings.Contains(err.Error(), "file is too big") {
+			p.client.SendMessage(int(chatID), "Видео слишком большое (более 20 МБ). Пожалуйста, отправьте видео меньшего размера.")
+			return fmt.Errorf("file too big: %w", err)
+		}
+		fmt.Println(fileInfo)
 		return fmt.Errorf("get file: %w", err)
 	}
 
