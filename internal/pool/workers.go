@@ -17,7 +17,7 @@ type Pool struct {
 
 func NewPool(size int) *Pool {
 	ctx, cancel := context.WithCancel(context.Background())
-	p := &Pool{
+	p := Pool{
 		tasks:  make(chan Task, 1000),
 		ctx:    ctx,
 		cancel: cancel,
@@ -28,7 +28,7 @@ func NewPool(size int) *Pool {
 		go p.worker(i)
 	}
 
-	return p
+	return &p
 }
 
 func (p *Pool) worker(id int) {

@@ -13,7 +13,7 @@ type FileStorage interface {
 
 type FileRecord struct {
 	UserID    int64     `bson:"user_id"`
-	ChatID    int64     `bson"chat_id"`
+	ChatID    int64     `bson:"chat_id"`
 	MessageID int       `bson:"message_id"`
 	Original  string    `bson:"original_path"`
 	VideoNote string    `bson:"video_note_path"`

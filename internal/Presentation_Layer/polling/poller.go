@@ -6,6 +6,7 @@ import (
 	"time"
 	"videonotebot/internal/Presentation_Layer/clients"
 	"videonotebot/internal/Presentation_Layer/dispatcher"
+	"videonotebot/internal/pool"
 )
 
 type Poller struct {
@@ -13,62 +14,40 @@ type Poller struct {
 	dispatcher dispatcher.Dispatcher
 	offset     int
 	timeout    int // таймаут long polling
-	updates    chan *clients.Update
+	pool       *pool.Pool
 }
 
-func NewPoller(client *clients.Client, dispatcher *dispatcher.Dispatcher, timeout int) *Poller {
+func NewPoller(client *clients.Client, dispatcher *dispatcher.Dispatcher, timeout int, pool *pool.Pool) *Poller {
 	return &Poller{
 		client:     client,
 		dispatcher: *dispatcher,
 		offset:     0,
 		timeout:    timeout,
-		updates:    make(chan *clients.Update, 1000),
+		pool:       pool,
 	}
 }
 
 func (p *Poller) Start(ctx context.Context) {
 	log.Println("Poller Started!")
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			log.Println("Poller stopped")
-			return
-		default:
-		}
-		for update := range p.updates {
-			p.dispatcher.HandleUpdate(update)
-		}
-		log.Println("Update consumer stopped")
-	}()
-
-	go func() {
-		defer close(p.updates)
+	p.pool.Submit(func() {
 		for {
-			select {
-			case <-ctx.Done():
-				log.Println("Poller stopped")
-				return
-			default:
-			}
-
 			updates, err := p.client.GetUpdate(p.offset, p.timeout)
 			if err != nil {
-				log.Printf("GetUpdates error: %v", err)
+				log.Println("GetUpdate error: ", err)
 				time.Sleep(time.Second)
-				continue
+				return
 			}
 
 			for _, update := range updates {
-				if update.Message == nil {
-					continue
+				if update.Message != nil {
+					p.dispatcher.HandleUpdate(&update)
+					p.offset = update.UpdateID + 1
 				}
-				upd := update
-				p.updates <- &upd // безопасный указатель
-				p.offset = update.UpdateID + 1
+				continue
 			}
 
 		}
 
-	}()
+	})
+
 }

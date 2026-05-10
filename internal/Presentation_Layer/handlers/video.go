@@ -28,6 +28,7 @@ func (h *VideoHandler) Handle(msg *clients.Message) {
 	video := msg.Video
 	chatID := msg.Chat.ChatID
 	fileID := msg.Video.FileID
+	// fileUnqID := msg.Video.FileUniqID
 	size := msg.Video.Size
 	log.Printf("Video from %d: file_id=%s, duration=%d", chatID, fileID, msg.Video.Duration)
 	if msg.Video.Duration > 60 {

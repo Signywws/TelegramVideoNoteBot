@@ -20,22 +20,22 @@ const (
 )
 
 func main() {
-
+	// Config
 	cfg := config.Load()
 
 	if cfg.BotToken == "" {
 		log.Fatal("TOKEN is not set")
 	}
-
+	// Клиент
 	client := clients.NewClient(cfg.BotToken)
-
-	// инициализация сервисов
 
 	// Хранилище
 	fileStore, err := storage.NewFileStore("../media/")
 	if err != nil {
 		log.Fatalf("Failed to init file storage: %v", err)
 	}
+
+	// инициализация сервисов
 	converter := service.NewConverter()
 
 	mongoURL := os.Getenv("MONGO_URI")
@@ -49,13 +49,14 @@ func main() {
 	videoProcessor := service.NewVideoProcessor(client, converter, fileStore, mongoRepo)
 
 	// Worker Pool
-	pool := pool.NewPool(5)
+	pollerPool := pool.NewPool(100)
+	pool := pool.NewPool(100)
 
 	// Dispatcher
 	dispatcher := dispatcher.NewDispatcher(client, pool, videoProcessor, fileStore)
 
 	// Poller
-	poller := polling.NewPoller(client, dispatcher, cfg.PollTimeout)
+	poller := polling.NewPoller(client, dispatcher, cfg.PollTimeout, pollerPool)
 
 	// Контекст который завершается после прерывания например Ctrl + C
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -67,6 +68,7 @@ func main() {
 	<-ctx.Done()
 	log.Println("Shutting down...")
 	pool.Shutdown()
+	pollerPool.Shutdown()
 
 	log.Println("Bot Stopped")
 
