@@ -11,7 +11,7 @@ import (
 
 type Poller struct {
 	client     *clients.Client
-	dispatcher dispatcher.Dispatcher
+	dispatcher *dispatcher.Dispatcher
 	offset     int
 	timeout    int // таймаут long polling
 	pool       *pool.Pool
@@ -20,7 +20,7 @@ type Poller struct {
 func NewPoller(client *clients.Client, dispatcher *dispatcher.Dispatcher, timeout int, pool *pool.Pool) *Poller {
 	return &Poller{
 		client:     client,
-		dispatcher: *dispatcher,
+		dispatcher: dispatcher,
 		offset:     0,
 		timeout:    timeout,
 		pool:       pool,
@@ -31,16 +31,22 @@ func (p *Poller) Start(ctx context.Context) {
 	log.Println("Poller Started!")
 	p.pool.Submit(func() {
 		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Pooler stopped")
+				return
+			default:
+			}
 			updates, err := p.client.GetUpdate(p.offset, p.timeout)
 			if err != nil {
 				log.Println("GetUpdate error: ", err)
 				time.Sleep(time.Second)
-				return
 			}
 
 			for _, update := range updates {
 				if update.Message != nil {
-					p.dispatcher.HandleUpdate(&update)
+					upd := update
+					p.dispatcher.HandleUpdate(&upd)
 					p.offset = update.UpdateID + 1
 				}
 				continue

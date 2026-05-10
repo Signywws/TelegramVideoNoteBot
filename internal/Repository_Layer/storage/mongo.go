@@ -36,6 +36,7 @@ func (m *MongoRepo) InsertRecord(ctx context.Context, record *FileRecord) error 
 	_, err := m.coll.InsertOne(ctx, record)
 	return err
 }
+
 func (m *MongoRepo) Close(ctx context.Context) error {
 	return m.client.Disconnect(ctx)
 }

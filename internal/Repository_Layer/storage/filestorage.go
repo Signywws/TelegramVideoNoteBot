@@ -31,7 +31,7 @@ func (l *LocalStotage) Save(_ context.Context, userID int64, category string, re
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create user dir: %w", err)
 	}
-	fileName := uuid.NewString() + ".mp4"
+	fileName := category + "-" + uuid.NewString() + ".mp4"
 	pathToFile := filepath.Join(dir, fileName)
 	file, err := os.Create(pathToFile)
 	if err != nil {
